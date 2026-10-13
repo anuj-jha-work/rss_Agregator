@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	database "github.com/anuj-jha-work/rss_Agregator/internal/database"
 	"github.com/go-chi/chi/v5"
@@ -18,24 +19,30 @@ type apiConfig struct {
 }
 
 func main() {
-
 	godotenv.Load(".env")
+
 	portString := os.Getenv("PORT")
 	if portString == "" {
 		log.Fatal("PORT,is not Working Please Try Again")
 	}
+
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URl is not Working Please Try Again")
 	}
+
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("DB_URl is not Working Please Try Again")
 	}
+
 	apiCfg := apiConfig{
 		DB: database.New(conn),
 	}
+	go startScraping(apiCfg.DB, 10, time.Minute)
+
 	router := chi.NewRouter()
+
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -45,23 +52,26 @@ func main() {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 	v1Router := chi.NewRouter()
-	v1Router.Get("/healthz", handlerReadiness)
-	v1Router.Get("/err", handlerError)
+
 	v1Router.Post("/users", apiCfg.handlerCreateUser)
 	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))
+
 	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeed))
 	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
+
 	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerCreateFeedFollow))
 	v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerGetFeedFollows))
 	v1Router.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerDeleteFeedFollow))
+
+	v1Router.Get("/healthz", handlerReadiness)
+	v1Router.Get("/err", handlerError)
+
 	router.Mount("/v1", v1Router)
 	srv := &http.Server{
 		Handler: router,
 		Addr:    ":" + portString,
 	}
-	log.Printf("Server Starting on %v", portString)
-	err = srv.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+
+	log.Printf("Serving on port: %s\n", portString)
+	log.Fatal(srv.ListenAndServe())
 }

@@ -10,3 +10,5 @@ create table feeds(
 
 -- +goose Down
 drop table feeds;
+
+
