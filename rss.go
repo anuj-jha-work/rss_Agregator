@@ -26,7 +26,7 @@ type RSSItem struct {
 
 func urlToFeed(url string) (RSSFeed, error) {
 	httpClient := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 30 * time.Second,
 	}
 	resp, err := httpClient.Get(url)
 	if err != nil {
