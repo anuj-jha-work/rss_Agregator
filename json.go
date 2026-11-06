@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// jab bhi koi bad req aya to error aur hamaar mesage ek josn me dalke bhej dega
 func respondWithError(w http.ResponseWriter, code int, msg string) {
 	if code > 499 {
 		log.Println("This is 5XX series error.", msg)
@@ -17,6 +18,7 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 	respondWithJSON(w, code, errorResponse{Error: msg})
 }
 
+// ek struct leta hai aur content type status helath ek josn me karke bhej dega
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	data, err := json.Marshal(payload)
 	if err != nil {

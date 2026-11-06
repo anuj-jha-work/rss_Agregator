@@ -19,6 +19,7 @@ type apiConfig struct {
 }
 
 func main() {
+	//apne db ka pass dia gya hai env me kyunki vo sirf system me hi rahna chahiye isliye env me rakha gya hai
 	godotenv.Load(".env")
 
 	portString := os.Getenv("PORT")
@@ -30,19 +31,19 @@ func main() {
 	if dbURL == "" {
 		log.Fatal("DB_URl is not Working Please Try Again")
 	}
-
+//ek connection pool banta hai jisse har new req ke liye alag connection na bna pade aur vo re use ho sake
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("DB_URl is not Working Please Try Again")
 	}
-
+// isi pool ke connection ko use karke queries run karenge
 	apiCfg := apiConfig{
 		DB: database.New(conn),
 	}
 	go startScraping(apiCfg.DB, 10, time.Minute)
-
+	//jab koi brwoser ya thunderclients e req karta hua to server ko kes epata lega ki konsa fn chalana hai iske liye hum chi router ka use karenge
 	router := chi.NewRouter()
-
+	//browser a security rul hai lag alg ports  se req ayga to block kardega cors laga ke bolte hai agr alg alg ya kahi s ehia ey to aloow karna
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -51,6 +52,7 @@ func main() {
 		AllowCredentials: false,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
+	//humne versioning ke liye v1Router banaya hai taki future me v2 ya v3 aayega to easily manage ho sake aur old users  ka work pahtega nhi
 	v1Router := chi.NewRouter()
 
 	v1Router.Post("/users", apiCfg.handlerCreateUser)
